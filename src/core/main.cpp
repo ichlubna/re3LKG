@@ -79,6 +79,42 @@
 #include "GitSHA1.h"
 #endif
 
+#include <vector>
+// Holo
+std::vector<RwCamera*> holoCameras;
+std::vector<rw::V3d> holoCameraTransforms;
+size_t holoCameraCount = 1;
+size_t holoGridCols = 2;
+size_t holoGridRows = 1;
+float holoSpacing = 0.5f;
+
+void InitHoloCameras()
+{
+    holoCameraCount = holoGridCols * holoGridRows;
+    int camWidth = SCREEN_WIDTH/holoGridCols;
+    int camHeight = SCREEN_HEIGHT/holoGridRows;
+
+    int halfCameraID = holoCameraCount/2;
+    for(int row=0; row<holoGridRows; row++)
+        for(int col=0; col<holoGridCols; col++)
+        {
+            int id = row*holoGridCols + col;
+            rw::Rect rect{col*camWidth, row*camHeight, camWidth, camHeight};
+            holoCameras.push_back(CameraCreate(camWidth, camHeight, TRUE));
+            holoCameraTransforms.push_back({id-halfCameraID*holoSpacing, 0.0f, 0.0f});
+
+            auto camera = holoCameras.back();
+            RwCameraSetFarClipPlane(camera, Scene.camera->farPlane);
+            RwCameraSetNearClipPlane(camera, Scene.camera->nearPlane);
+            CameraSize(camera, nil, DEFAULT_VIEWWINDOW, DEFAULT_ASPECT_RATIO);
+            camera->setProjection(rw::Camera::PERSPECTIVE);
+            rw::V2d viewWindow {camWidth, camHeight};
+            camera->setViewWindow(&viewWindow);
+            RwCameraGetRaster(camera)->subRaster(RwCameraGetRaster(Scene.camera), &rect);
+            RpWorldAddCamera(Scene.world, camera);
+        }
+}
+
 GlobalScene Scene;
 
 uint8 work_buff[55000];
@@ -1526,6 +1562,12 @@ Render2dStuffAfterFade(void)
 void
 Idle(void *arg)
 {
+auto originalCamera = Scene.camera;
+for(int i=0; i<holoCameraCount; i++)
+{
+    Scene.camera = holoCameras[i];
+    Scene.camera->object = originalCamera->object;
+
 	CTimer::Update();
 
 	tbInit();
@@ -1562,6 +1604,8 @@ Idle(void *arg)
 		return;
 
 	PUSH_MEMID(MEMID_RENDER);
+
+    Scene.camera->getFrame()->translate(&holoCameraTransforms[i]);
 
 	if(!FrontEndMenuManager.m_bMenuActive && TheCamera.GetScreenFadeStatus() != FADE_2)
 	{
@@ -1676,6 +1720,9 @@ Idle(void *arg)
 	FrontEndMenuManager.DrawOverlays();
 #endif
 
+}
+Scene.camera = originalCamera;
+
 	if (gbShowTimebars)
 		tbDisplay();
 
@@ -1726,6 +1773,7 @@ InitialiseGame(void)
 {
 	LoadingScreen(nil, nil, "loadsc0");
 	CGame::Initialise("DATA\\GTA_VC.DAT");
+    InitHoloCameras();
 }
 
 RsEventStatus
@@ -2382,6 +2430,7 @@ void PlayIntroMPEGs()
 	//TODO
 #endif
 }
+
 
 int
 main(int argc, char *argv[])
