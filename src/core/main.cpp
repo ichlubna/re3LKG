@@ -101,7 +101,7 @@ void InitHoloCameras()
             int id = row*holoGridCols + col;
             rw::Rect rect{col*camWidth, row*camHeight, camWidth, camHeight};
             holoCameras.push_back(CameraCreate(camWidth, camHeight, TRUE));
-            holoCameraTransforms.push_back({id-halfCameraID*holoSpacing, 0.0f, 0.0f});
+            holoCameraTransforms.push_back({(id-halfCameraID)*holoSpacing, 0.0f, 0.0f});
 
             auto camera = holoCameras.back();
             RwCameraSetFarClipPlane(camera, Scene.camera->farPlane);
