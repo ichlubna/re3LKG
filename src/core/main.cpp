@@ -83,10 +83,40 @@
 // Holo
 std::vector<RwCamera*> holoCameras;
 std::vector<rw::V3d> holoCameraTransforms;
+std::vector<float> holoCameraFocusOffsets;
 size_t holoCameraCount = 1;
 size_t holoGridCols = 3;
 size_t holoGridRows = 3;
 float holoSpacing = 0.5f;
+float holoTilt = 0.0f;
+float holoPitch = 0.0f;
+float holoCenter = 0.0f;
+float holoViewPortionElement = 0.0f;
+float holoSubp = 0.0f;
+float holoFocus = 0.0f;
+float holoFocusStep = 0.01f;
+
+void UpdateHoloFocus()
+{
+    int halfCameraID = holoCameraCount/2;
+    for(int i=0; i<holoCameraCount; i++)
+        holoCameraFocusOffsets[i]= (i-halfCameraID)*holoFocus; 
+}
+
+void CheckFocusChange()
+{
+    CPad *pad = CPad::GetPad(0);
+    if(pad->GetPad7())
+    {
+        holoFocus += holoFocusStep;
+        UpdateHoloFocus();
+    }
+    else if(pad->GetPad8())
+    {
+        holoFocus -= holoFocusStep;
+        UpdateHoloFocus();
+    }
+}
 
 void InitHoloCameras()
 {
@@ -113,6 +143,8 @@ void InitHoloCameras()
             RwCameraGetRaster(camera)->subRaster(RwCameraGetRaster(Scene.camera), &rect);
             RpWorldAddCamera(Scene.world, camera);
         }
+    holoCameraFocusOffsets.resize(holoCameraCount);
+    UpdateHoloFocus();
 }
 
 GlobalScene Scene;
@@ -1572,6 +1604,7 @@ Idle(void *arg)
         rw::Matrix::mult(transform, transform, originalTransform);
         transform->translate(&holoCameraTransforms[i], rw::COMBINEPRECONCAT);
         Scene.camera->getFrame()->transform(transform, rw::COMBINEREPLACE);
+        Scene.camera->viewOffset.x = holoCameraFocusOffsets[i];
 
         CTimer::Update();
 
@@ -1727,8 +1760,9 @@ Idle(void *arg)
     RsCameraBeginUpdate(Scene.camera);
     CPostFX::GetBackBuffer(Scene.camera);
 
+    CheckFocusChange();
     //static void RenderHoloShader(RwCamera *cam, float cols, float rows, float tilt, float pitch, float center, float viewPortionElement, float subp);
-    CPostFX::RenderHoloShader(Scene.camera, 0.5f, 0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f);
+    CPostFX::RenderHoloShader(Scene.camera, 0.5f, 0.5f, 0.3f, 0.0f, 0.5f, 0.0f, 0.0f);
 
 	if (gbShowTimebars)
 		tbDisplay();
