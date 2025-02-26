@@ -84,8 +84,8 @@
 std::vector<RwCamera*> holoCameras;
 std::vector<rw::V3d> holoCameraTransforms;
 size_t holoCameraCount = 1;
-size_t holoGridCols = 2;
-size_t holoGridRows = 1;
+size_t holoGridCols = 3;
+size_t holoGridRows = 3;
 float holoSpacing = 0.5f;
 
 void InitHoloCameras()
@@ -1566,7 +1566,12 @@ auto originalCamera = Scene.camera;
 for(int i=0; i<holoCameraCount; i++)
 {
     Scene.camera = holoCameras[i];
-    Scene.camera->object = originalCamera->object;
+    rw::Matrix *transform = rw::Matrix::create();
+    transform->setIdentity();
+    rw::Matrix *originalTransform = originalCamera->getFrame()->getLTM();
+    rw::Matrix::mult(transform, transform, originalTransform);
+    transform->translate(&holoCameraTransforms[i], rw::COMBINEPRECONCAT);
+    Scene.camera->getFrame()->transform(transform, rw::COMBINEREPLACE);
 
 	CTimer::Update();
 
@@ -1604,8 +1609,6 @@ for(int i=0; i<holoCameraCount; i++)
 		return;
 
 	PUSH_MEMID(MEMID_RENDER);
-
-    Scene.camera->getFrame()->translate(&holoCameraTransforms[i]);
 
 	if(!FrontEndMenuManager.m_bMenuActive && TheCamera.GetScreenFadeStatus() != FADE_2)
 	{
@@ -1680,7 +1683,7 @@ for(int i=0; i<holoCameraCount; i++)
 #endif
 
 		tbStartTimer(0, "RenderMotionBlur");
-		TheCamera.RenderMotionBlur();
+		//TheCamera.RenderMotionBlur();
 		tbEndTimer("RenderMotionBlur");
 
 		tbStartTimer(0, "Render2dStuff");
