@@ -7,6 +7,12 @@ if [ -z "$1" ]; then
 fi
 BUILD_DIR=../bin/linux-amd64-librw_gl3_glfw-oal/Release/
 CURRENT_PATH=$(pwd)
+
+cd ../src/extras/shaders
+chmod +x ./makeinc_glsl.sh
+./makeinc_glsl.sh holo.frag
+cd $CURRENT_PATH/
+
 rm -rf $BUILD_DIR/*
 cd ..
 premake5 --with-librw gmake2
@@ -16,9 +22,9 @@ if [ $? -ne 0 ]; then
     echo "Compilation went wrong!"
     exit 1
 fi
-cd ../vendor/librw/src/gl/shaders/
-make
-cd $CURRENT_PATH/
+#cd ../vendor/librw/src/gl/shaders/
+#make
+#cd $CURRENT_PATH/
 GAME=$GAME_DIR/$1
 if [ -z "$( ls -A $BUILD_DIR )" ]; then
     exit 1

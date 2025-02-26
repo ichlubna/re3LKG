@@ -91,8 +91,8 @@ float holoSpacing = 0.5f;
 void InitHoloCameras()
 {
     holoCameraCount = holoGridCols * holoGridRows;
-    int camWidth = SCREEN_WIDTH/holoGridCols;
-    int camHeight = SCREEN_HEIGHT/holoGridRows;
+    int camWidth = static_cast<int>(SCREEN_WIDTH/holoGridCols);
+    int camHeight = static_cast<int>(SCREEN_HEIGHT/holoGridRows);
 
     int halfCameraID = holoCameraCount/2;
     for(int row=0; row<holoGridRows; row++)
@@ -108,7 +108,7 @@ void InitHoloCameras()
             RwCameraSetNearClipPlane(camera, Scene.camera->nearPlane);
             CameraSize(camera, nil, DEFAULT_VIEWWINDOW, DEFAULT_ASPECT_RATIO);
             camera->setProjection(rw::Camera::PERSPECTIVE);
-            rw::V2d viewWindow {camWidth, camHeight};
+            rw::V2d viewWindow {static_cast<float>(camWidth), static_cast<float>(camHeight)};
             camera->setViewWindow(&viewWindow);
             RwCameraGetRaster(camera)->subRaster(RwCameraGetRaster(Scene.camera), &rect);
             RpWorldAddCamera(Scene.world, camera);
@@ -1562,169 +1562,173 @@ Render2dStuffAfterFade(void)
 void
 Idle(void *arg)
 {
-auto originalCamera = Scene.camera;
-for(int i=0; i<holoCameraCount; i++)
-{
-    Scene.camera = holoCameras[i];
-    rw::Matrix *transform = rw::Matrix::create();
-    transform->setIdentity();
-    rw::Matrix *originalTransform = originalCamera->getFrame()->getLTM();
-    rw::Matrix::mult(transform, transform, originalTransform);
-    transform->translate(&holoCameraTransforms[i], rw::COMBINEPRECONCAT);
-    Scene.camera->getFrame()->transform(transform, rw::COMBINEREPLACE);
+    auto originalCamera = Scene.camera;
+    for(int i=0; i<holoCameraCount; i++)
+    {
+        Scene.camera = holoCameras[i];
+        rw::Matrix *transform = rw::Matrix::create();
+        transform->setIdentity();
+        rw::Matrix *originalTransform = originalCamera->getFrame()->getLTM();
+        rw::Matrix::mult(transform, transform, originalTransform);
+        transform->translate(&holoCameraTransforms[i], rw::COMBINEPRECONCAT);
+        Scene.camera->getFrame()->transform(transform, rw::COMBINEREPLACE);
 
-	CTimer::Update();
+        CTimer::Update();
 
-	tbInit();
+        tbInit();
 
-	CSprite2d::InitPerFrame();
-	CFont::InitPerFrame();
+        CSprite2d::InitPerFrame();
+        CFont::InitPerFrame();
 
-	PUSH_MEMID(MEMID_GAME_PROCESS);
-	CPointLights::InitPerFrame();
+        PUSH_MEMID(MEMID_GAME_PROCESS);
+        CPointLights::InitPerFrame();
 
-	tbStartTimer(0, "CGame::Process");
-	CGame::Process();
-	tbEndTimer("CGame::Process");
-	POP_MEMID();
+        tbStartTimer(0, "CGame::Process");
+        CGame::Process();
+        tbEndTimer("CGame::Process");
+        POP_MEMID();
 
-	tbStartTimer(0, "DMAudio.Service");
-	DMAudio.Service();
-	tbEndTimer("DMAudio.Service");
+        tbStartTimer(0, "DMAudio.Service");
+        DMAudio.Service();
+        tbEndTimer("DMAudio.Service");
 
-	if(CGame::bDemoMode && CTimer::GetTimeInMilliseconds() > (3*60 + 30)*1000 && !CCutsceneMgr::IsCutsceneProcessing()){
-		WANT_TO_LOAD = false;
-		FrontEndMenuManager.m_bWantToRestart = true;
-		return;
-	}
+        if(CGame::bDemoMode && CTimer::GetTimeInMilliseconds() > (3*60 + 30)*1000 && !CCutsceneMgr::IsCutsceneProcessing()){
+            WANT_TO_LOAD = false;
+            FrontEndMenuManager.m_bWantToRestart = true;
+            return;
+        }
 
-	if(FrontEndMenuManager.m_bWantToRestart || FOUND_GAME_TO_LOAD)
-	{
-		return;
-	}
-	
-	SetLightsWithTimeOfDayColour(Scene.world);
+        if(FrontEndMenuManager.m_bWantToRestart || FOUND_GAME_TO_LOAD)
+        {
+            return;
+        }
+        
+        SetLightsWithTimeOfDayColour(Scene.world);
 
-	if(arg == nil)
-		return;
+        if(arg == nil)
+            return;
 
-	PUSH_MEMID(MEMID_RENDER);
+        PUSH_MEMID(MEMID_RENDER);
 
-	if(!FrontEndMenuManager.m_bMenuActive && TheCamera.GetScreenFadeStatus() != FADE_2)
-	{
-		// This is from SA, but it's nice for windowed mode
+        if(!FrontEndMenuManager.m_bMenuActive && TheCamera.GetScreenFadeStatus() != FADE_2)
+        {
+            // This is from SA, but it's nice for windowed mode
 #if defined(GTA_PC) && !defined(RW_GL3)
-		RwV2d pos;
-		pos.x = SCREEN_WIDTH / 2.0f;
-		pos.y = SCREEN_HEIGHT / 2.0f;
-		RsMouseSetPos(&pos);
+            RwV2d pos;
+            pos.x = SCREEN_WIDTH / 2.0f;
+            pos.y = SCREEN_HEIGHT / 2.0f;
+            RsMouseSetPos(&pos);
 #endif
 
-		tbStartTimer(0, "CnstrRenderList");
+            tbStartTimer(0, "CnstrRenderList");
 #ifdef PC_WATER
-		CWaterLevel::PreCalcWaterGeometry();
+            CWaterLevel::PreCalcWaterGeometry();
 #endif
 #ifdef NEW_RENDERER
-		if(gbNewRenderer){
-			CWorld::AdvanceCurrentScanCode();	// don't think this is even necessary
-			CRenderer::ClearForFrame();
-		}
+            if(gbNewRenderer){
+                CWorld::AdvanceCurrentScanCode();	// don't think this is even necessary
+                CRenderer::ClearForFrame();
+            }
 #endif
-		CRenderer::ConstructRenderList();
-		tbEndTimer("CnstrRenderList");
+            CRenderer::ConstructRenderList();
+            tbEndTimer("CnstrRenderList");
 
-		tbStartTimer(0, "PreRender");
-		CRenderer::PreRender();
-		tbEndTimer("PreRender");
+            tbStartTimer(0, "PreRender");
+            CRenderer::PreRender();
+            tbEndTimer("PreRender");
 
 #ifdef FIX_BUGS
-		RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, (void *)FALSE); // TODO: temp? this fixes OpenGL render but there should be a better place for this
-		// This has to be done BEFORE RwCameraBeginUpdate
-		RwCameraSetFarClipPlane(Scene.camera, CTimeCycle::GetFarClip());
-		RwCameraSetFogDistance(Scene.camera, CTimeCycle::GetFogStart());
+            RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, (void *)FALSE); // TODO: temp? this fixes OpenGL render but there should be a better place for this
+            // This has to be done BEFORE RwCameraBeginUpdate
+            RwCameraSetFarClipPlane(Scene.camera, CTimeCycle::GetFarClip());
+            RwCameraSetFogDistance(Scene.camera, CTimeCycle::GetFogStart());
 #endif
 
-		if(CWeather::LightningFlash && !CCullZones::CamNoRain()){
-			if(!DoRWStuffStartOfFrame_Horizon(255, 255, 255, 255, 255, 255, 255))
-				goto popret;
-		}else{
-			if(!DoRWStuffStartOfFrame_Horizon(CTimeCycle::GetSkyTopRed(), CTimeCycle::GetSkyTopGreen(), CTimeCycle::GetSkyTopBlue(),
-						CTimeCycle::GetSkyBottomRed(), CTimeCycle::GetSkyBottomGreen(), CTimeCycle::GetSkyBottomBlue(),
-						255))
-				goto popret;
-		}
+            if(CWeather::LightningFlash && !CCullZones::CamNoRain()){
+                if(!DoRWStuffStartOfFrame_Horizon(255, 255, 255, 255, 255, 255, 255))
+                    goto popret;
+            }else{
+                if(!DoRWStuffStartOfFrame_Horizon(CTimeCycle::GetSkyTopRed(), CTimeCycle::GetSkyTopGreen(), CTimeCycle::GetSkyTopBlue(),
+                            CTimeCycle::GetSkyBottomRed(), CTimeCycle::GetSkyBottomGreen(), CTimeCycle::GetSkyBottomBlue(),
+                            255))
+                    goto popret;
+            }
 
-		DefinedState();
+            DefinedState();
 
 #ifndef FIX_BUGS
-		RwCameraSetFarClipPlane(Scene.camera, CTimeCycle::GetFarClip());
-		RwCameraSetFogDistance(Scene.camera, CTimeCycle::GetFogStart());
+            RwCameraSetFarClipPlane(Scene.camera, CTimeCycle::GetFarClip());
+            RwCameraSetFogDistance(Scene.camera, CTimeCycle::GetFogStart());
 #endif
 
-		tbStartTimer(0, "RenderScene");
-		RenderScene();
-		tbEndTimer("RenderScene");
-
+            tbStartTimer(0, "RenderScene");
+            RenderScene();
+            tbEndTimer("RenderScene");
 #ifdef EXTENDED_PIPELINES
-		CustomPipes::EnvMapRender();
+            CustomPipes::EnvMapRender();
 #endif
 
-		RenderDebugShit();
-		RenderEffects();
+            RenderDebugShit();
+            RenderEffects();
 
-		if((TheCamera.m_BlurType == MOTION_BLUR_NONE || TheCamera.m_BlurType == MOTION_BLUR_LIGHT_SCENE) &&
-		   TheCamera.m_ScreenReductionPercentage > 0.0f)
-		        TheCamera.SetMotionBlurAlpha(150);
+            if((TheCamera.m_BlurType == MOTION_BLUR_NONE || TheCamera.m_BlurType == MOTION_BLUR_LIGHT_SCENE) &&
+               TheCamera.m_ScreenReductionPercentage > 0.0f)
+                    TheCamera.SetMotionBlurAlpha(150);
 
 #ifdef SCREEN_DROPLETS
-		CPostFX::GetBackBuffer(Scene.camera);
-		ScreenDroplets::Process();
-		ScreenDroplets::Render();
+            CPostFX::GetBackBuffer(Scene.camera);
+            ScreenDroplets::Process();
+            ScreenDroplets::Render();
 #endif
 
-		tbStartTimer(0, "RenderMotionBlur");
-		//TheCamera.RenderMotionBlur();
-		tbEndTimer("RenderMotionBlur");
+            tbStartTimer(0, "RenderMotionBlur");
+            //TheCamera.RenderMotionBlur();
+            tbEndTimer("RenderMotionBlur");
 
-		tbStartTimer(0, "Render2dStuff");
-		Render2dStuff();
-		tbEndTimer("Render2dStuff");
-	}else{
-		CDraw::CalculateAspectRatio();
+            tbStartTimer(0, "Render2dStuff");
+            Render2dStuff();
+            tbEndTimer("Render2dStuff");
+        }else{
+            CDraw::CalculateAspectRatio();
 #ifdef ASPECT_RATIO_SCALE
-		CameraSize(Scene.camera, nil, SCREEN_VIEWWINDOW, SCREEN_ASPECT_RATIO);
+            CameraSize(Scene.camera, nil, SCREEN_VIEWWINDOW, SCREEN_ASPECT_RATIO);
 #else
-		CameraSize(Scene.camera, nil, SCREEN_VIEWWINDOW, DEFAULT_ASPECT_RATIO);
+            CameraSize(Scene.camera, nil, SCREEN_VIEWWINDOW, DEFAULT_ASPECT_RATIO);
 #endif
-		CVisibilityPlugins::SetRenderWareCamera(Scene.camera);
-		RwCameraClear(Scene.camera, &gColourTop, CLEARMODE);
-		if(!RsCameraBeginUpdate(Scene.camera))
-			goto popret;
-	}
+            CVisibilityPlugins::SetRenderWareCamera(Scene.camera);
+            RwCameraClear(Scene.camera, &gColourTop, CLEARMODE);
+            if(!RsCameraBeginUpdate(Scene.camera))
+                goto popret;
+        }
 
-	tbStartTimer(0, "RenderMenus");
-	RenderMenus();
-	tbEndTimer("RenderMenus");
+        tbStartTimer(0, "RenderMenus");
+        RenderMenus();
+        tbEndTimer("RenderMenus");
 
 #ifdef PS2_MENU
-	if ( TheMemoryCard.m_bWantToLoad )
-		goto popret;
+        if ( TheMemoryCard.m_bWantToLoad )
+            goto popret;
 #endif
 
-	tbStartTimer(0, "DoFade");
-	DoFade();
-	tbEndTimer("DoFade");
+        tbStartTimer(0, "DoFade");
+        DoFade();
+        tbEndTimer("DoFade");
 
-	tbStartTimer(0, "Render2dStuff-Fade");
-	Render2dStuffAfterFade();
-	tbEndTimer("Render2dStuff-Fade");
-	// CCredits::Render(); // They added it to function above and also forgot it here
+        tbStartTimer(0, "Render2dStuff-Fade");
+        Render2dStuffAfterFade();
+        tbEndTimer("Render2dStuff-Fade");
+        // CCredits::Render(); // They added it to function above and also forgot it here
 #ifdef XBOX_MESSAGE_SCREEN
-	FrontEndMenuManager.DrawOverlays();
+        FrontEndMenuManager.DrawOverlays();
 #endif
 
-}
-Scene.camera = originalCamera;
+    }
+    Scene.camera = originalCamera;
+    RsCameraBeginUpdate(Scene.camera);
+    CPostFX::GetBackBuffer(Scene.camera);
+
+    //static void RenderHoloShader(RwCamera *cam, float cols, float rows, float tilt, float pitch, float center, float viewPortionElement, float subp);
+    CPostFX::RenderHoloShader(Scene.camera, 0.5f, 0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f);
 
 	if (gbShowTimebars)
 		tbDisplay();

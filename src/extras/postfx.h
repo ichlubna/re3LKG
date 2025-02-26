@@ -34,6 +34,8 @@ public:
 	static void RenderOverlayBlur(RwCamera *cam, int32 r, int32 g, int32 b, int32 a);
 	static void RenderOverlaySniper(RwCamera *cam, int32 r, int32 g, int32 b, int32 a);
 	static void RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a);
+    static void RenderHoloShader(RwCamera *cam, float cols, float rows, float tilt, float pitch, float center, float viewPortionElement, float subp);
+	static void RenderHoloShader(RwCamera *cam);
 	static void RenderMotionBlur(RwCamera *cam, uint32 blur);
 	static void Render(RwCamera *cam, uint32 red, uint32 green, uint32 blue, uint32 blur, int32 type, uint32 bluralpha);
 	static void SmoothColor(uint32 red, uint32 green, uint32 blue, uint32 alpha);

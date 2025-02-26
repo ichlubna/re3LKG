@@ -27,13 +27,22 @@ static RwImVertexIndex Index[6] = { 0, 1, 2, 0, 2, 3 };
 #ifdef RW_D3D9
 void *colourfilterVC_PS;
 void *contrast_PS;
+void *holo_PS;
 #endif
 #ifdef RW_OPENGL
 int32 u_blurcolor;
 int32 u_contrastAdd;
 int32 u_contrastMult;
+int32 u_holoTilt;
+int32 u_holoCols;
+int32 u_holoRows;
+int32 u_holoPitch;
+int32 u_holoCenter;
+int32 u_holoViewPortionElement;
+int32 u_holoSubp;
 rw::gl3::Shader *colourFilterVC;
 rw::gl3::Shader *contrast;
+rw::gl3::Shader *holo;
 #endif
 
 void
@@ -43,6 +52,13 @@ CPostFX::InitOnce(void)
 	u_blurcolor = rw::gl3::registerUniform("u_blurcolor");
 	u_contrastAdd = rw::gl3::registerUniform("u_contrastAdd");
 	u_contrastMult = rw::gl3::registerUniform("u_contrastMult");
+	u_holoTilt = rw::gl3::registerUniform("u_holoTilt");
+    u_holoCols = rw::gl3::registerUniform("u_holoCols");
+    u_holoRows = rw::gl3::registerUniform("u_holoRows");
+    u_holoPitch = rw::gl3::registerUniform("u_holoPitch");
+    u_holoCenter = rw::gl3::registerUniform("u_holoCenter");
+    u_holoViewPortionElement = rw::gl3::registerUniform("u_holoViewPortionElement");
+    u_holoSubp = rw::gl3::registerUniform("u_holoSubp");
 #endif
 }
 
@@ -150,6 +166,8 @@ CPostFX::Open(RwCamera *cam)
 	colourfilterVC_PS = rw::d3d::createPixelShader(colourfilterVC_PS_cso);
 #include "shaders/obj/contrastPS.inc"
 	contrast_PS = rw::d3d::createPixelShader(contrastPS_cso);
+#include "shaders/obj/holoPS.inc"
+	holo_PS = rw::d3d::createPixelShader(holoPS_cso);
 #endif
 #ifdef RW_OPENGL
 	using namespace rw::gl3;
@@ -170,6 +188,15 @@ CPostFX::Open(RwCamera *cam)
 	const char *fs[] = { shaderDecl, header_frag_src, contrast_frag_src, nil };
 	contrast = Shader::create(vs, fs);
 	assert(contrast);
+	}
+
+	{
+#include "shaders/obj/im2d_vert.inc"
+#include "shaders/obj/holo_frag.inc"
+	const char *vs[] = { shaderDecl, header_vert_src, im2d_vert_src, nil };
+	const char *fs[] = { shaderDecl, header_frag_src, holo_frag_src, nil };
+	holo = Shader::create(vs, fs);
+	assert(holo);
 	}
 
 #endif
@@ -211,6 +238,7 @@ CPostFX::Close(void)
 void
 CPostFX::RenderOverlayBlur(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 {
+
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pFrontBuffer);
 	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)TRUE);
 
@@ -262,6 +290,39 @@ CPostFX::RenderOverlaySniper(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
 }
 
 float CPostFX::Intensity = 1.0f;
+
+void
+CPostFX::RenderHoloShader(RwCamera *cam, float cols, float rows, float tilt, float pitch, float center, float viewPortionElement, float subp)
+{
+	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, pBackBuffer);
+
+#ifdef RW_D3D9
+		rw::d3d::d3ddevice->SetPixelShaderConstantF(10, tilt, 1);
+		rw::d3d::im2dOverridePS = holo_PS;
+        printf("Shader not implemented\n");
+        exit(0);
+#endif
+#ifdef RW_OPENGL
+		rw::gl3::im2dOverrideShader = holo;
+		holo->use();
+		glUniform1f(holo->uniformLocations[u_holoTilt], tilt);
+		glUniform1f(holo->uniformLocations[u_holoCols], cols);
+		glUniform1f(holo->uniformLocations[u_holoRows], rows);
+		glUniform1f(holo->uniformLocations[u_holoPitch], pitch);
+		glUniform1f(holo->uniformLocations[u_holoCenter], center);
+		glUniform1f(holo->uniformLocations[u_holoViewPortionElement], viewPortionElement);
+        glUniform1f(holo->uniformLocations[u_holoSubp], subp);
+#endif
+
+	RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, Vertex, 4, Index, 6);
+#ifdef RW_D3D9
+	rw::d3d::im2dOverridePS = nil;
+#endif
+#ifdef RW_OPENGL
+	rw::gl3::im2dOverrideShader = nil;
+#endif
+}
+
 
 void
 CPostFX::RenderOverlayShader(RwCamera *cam, int32 r, int32 g, int32 b, int32 a)
