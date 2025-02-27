@@ -484,6 +484,16 @@ bool LoadINISettings()
 	if (!ini.read(cfg))
 		return false;
 
+	ReadIniIfExists("Holo", "Rows", &FrontEndMenuManager.holoRows);
+	ReadIniIfExists("Holo", "Cols", &FrontEndMenuManager.holoCols);
+	ReadIniIfExists("Holo", "Tilt", &FrontEndMenuManager.holoTilt);
+	ReadIniIfExists("Holo", "Pitch", &FrontEndMenuManager.holoPitch);
+	ReadIniIfExists("Holo", "Center", &FrontEndMenuManager.holoCenter);
+	ReadIniIfExists("Holo", "ViewPortionElement", &FrontEndMenuManager.holoViewPortionElement);
+    ReadIniIfExists("Holo", "Subp", &FrontEndMenuManager.holoSubp);
+	ReadIniIfExists("Holo", "FocusSpacingStep", &FrontEndMenuManager.holoFocusStep);
+	ReadIniIfExists("Holo", "CameraSpacingStep", &FrontEndMenuManager.holoSpacingStep);
+
 #ifdef IMPROVED_VIDEOMODE
 	ReadIniIfExists("VideoMode", "Width", &FrontEndMenuManager.m_nPrefsWidth);
 	ReadIniIfExists("VideoMode", "Height", &FrontEndMenuManager.m_nPrefsHeight);

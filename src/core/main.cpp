@@ -79,22 +79,16 @@
 #include "GitSHA1.h"
 #endif
 
+#include "ini.h"
 #include <vector>
 // Holo
 std::vector<RwCamera*> holoCameras;
 std::vector<rw::V3d> holoCameraTransforms;
 std::vector<float> holoCameraFocusOffsets;
 size_t holoCameraCount = 1;
-size_t holoGridCols = 3;
-size_t holoGridRows = 3;
 float holoSpacing = 0.5f;
-float holoTilt = 0.0f;
-float holoPitch = 0.0f;
-float holoCenter = 0.0f;
-float holoViewPortionElement = 0.0f;
-float holoSubp = 0.0f;
 float holoFocus = 0.0f;
-float holoFocusStep = 0.01f;
+bool holoEnabled = true;
 
 void UpdateHoloFocus()
 {
@@ -103,35 +97,67 @@ void UpdateHoloFocus()
         holoCameraFocusOffsets[i]= (i-halfCameraID)*holoFocus; 
 }
 
+void UpdateHoloCameras()
+{
+    int halfCameraID = holoCameraCount/2;
+    for(int i=0; i<holoCameraTransforms.size(); i++)
+        holoCameraTransforms[i].x = (i-halfCameraID)*holoSpacing;
+} 
+
 void CheckFocusChange()
 {
     CPad *pad = CPad::GetPad(0);
     if(pad->GetPad7())
     {
-        holoFocus += holoFocusStep;
+        holoFocus += FrontEndMenuManager.holoFocusStep;
         UpdateHoloFocus();
     }
     else if(pad->GetPad8())
     {
-        holoFocus -= holoFocusStep;
+        holoFocus -= FrontEndMenuManager.holoFocusStep;
         UpdateHoloFocus();
     }
+    
+    if(pad->GetPad2())
+    {
+        holoSpacing += FrontEndMenuManager.holoSpacingStep;
+        UpdateHoloCameras();
+    }
+    else if(pad->GetPad3())
+    {
+        holoSpacing -= FrontEndMenuManager.holoSpacingStep;
+        if(holoSpacing < 0)
+            holoSpacing = 0;
+        UpdateHoloCameras();
+    }
+
+    if(pad->GetPad9())
+        holoEnabled = false;
+    else
+        holoEnabled = true;
+
 }
 
 void InitHoloCameras()
 {
-    holoCameraCount = holoGridCols * holoGridRows;
-    int camWidth = static_cast<int>(SCREEN_WIDTH/holoGridCols);
-    int camHeight = static_cast<int>(SCREEN_HEIGHT/holoGridRows);
+    holoCameraCount = FrontEndMenuManager.holoCols * FrontEndMenuManager.holoRows;
+    if(holoCameraCount == 0)
+    {
+        holoCameraCount = 1;
+        FrontEndMenuManager.holoCols = 1;
+        FrontEndMenuManager.holoRows = 1;
+    }
 
-    int halfCameraID = holoCameraCount/2;
-    for(int row=0; row<holoGridRows; row++)
-        for(int col=0; col<holoGridCols; col++)
+    int camWidth = static_cast<int>(SCREEN_WIDTH/FrontEndMenuManager.holoCols);
+    int camHeight = static_cast<int>(SCREEN_HEIGHT/FrontEndMenuManager.holoRows);
+
+    for(int row=0; row<FrontEndMenuManager.holoRows; row++)
+        for(int col=0; col<FrontEndMenuManager.holoCols; col++)
         {
-            int id = row*holoGridCols + col;
+            int id = row*FrontEndMenuManager.holoCols + col;
             rw::Rect rect{col*camWidth, row*camHeight, camWidth, camHeight};
             holoCameras.push_back(CameraCreate(camWidth, camHeight, TRUE));
-            holoCameraTransforms.push_back({(id-halfCameraID)*holoSpacing, 0.0f, 0.0f});
+            holoCameraTransforms.emplace_back();
 
             auto camera = holoCameras.back();
             RwCameraSetFarClipPlane(camera, Scene.camera->farPlane);
@@ -144,6 +170,7 @@ void InitHoloCameras()
             RpWorldAddCamera(Scene.world, camera);
         }
     holoCameraFocusOffsets.resize(holoCameraCount);
+    UpdateHoloCameras();
     UpdateHoloFocus();
 }
 
@@ -1761,8 +1788,8 @@ Idle(void *arg)
     CPostFX::GetBackBuffer(Scene.camera);
 
     CheckFocusChange();
-    //static void RenderHoloShader(RwCamera *cam, float cols, float rows, float tilt, float pitch, float center, float viewPortionElement, float subp);
-    CPostFX::RenderHoloShader(Scene.camera, 0.5f, 0.5f, 0.3f, 0.0f, 0.5f, 0.0f, 0.0f);
+    if(holoEnabled)
+        CPostFX::RenderHoloShader(Scene.camera, FrontEndMenuManager.holoCols, FrontEndMenuManager.holoRows, FrontEndMenuManager.holoTilt, FrontEndMenuManager.holoPitch, FrontEndMenuManager.holoCenter, FrontEndMenuManager.holoViewPortionElement, FrontEndMenuManager.holoSubp);
 
 	if (gbShowTimebars)
 		tbDisplay();

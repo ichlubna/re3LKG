@@ -40,6 +40,8 @@ int32 u_holoPitch;
 int32 u_holoCenter;
 int32 u_holoViewPortionElement;
 int32 u_holoSubp;
+int32 u_holoMaxUV;
+float holoMaxUV[2];
 rw::gl3::Shader *colourFilterVC;
 rw::gl3::Shader *contrast;
 rw::gl3::Shader *holo;
@@ -59,6 +61,7 @@ CPostFX::InitOnce(void)
     u_holoCenter = rw::gl3::registerUniform("u_holoCenter");
     u_holoViewPortionElement = rw::gl3::registerUniform("u_holoViewPortionElement");
     u_holoSubp = rw::gl3::registerUniform("u_holoSubp");
+    u_holoMaxUV = rw::gl3::registerUniform("u_holoMaxUV");
 #endif
 }
 
@@ -74,6 +77,9 @@ CPostFX::Open(RwCamera *cam)
 	pFrontBuffer = RwRasterCreate(width, height, depth, rwRASTERTYPECAMERATEXTURE);
 	pBackBuffer = RwRasterCreate(width, height, depth, rwRASTERTYPECAMERATEXTURE);
 	bJustInitialised = true;
+	
+    holoMaxUV[0]  = static_cast<float>(RwRasterGetWidth (RwCameraGetRaster(cam)))/width;
+    holoMaxUV[1]  = static_cast<float>(RwRasterGetHeight (RwCameraGetRaster(cam)))/height;
 
 	float zero, xmax, ymax;
 
@@ -306,12 +312,13 @@ CPostFX::RenderHoloShader(RwCamera *cam, float cols, float rows, float tilt, flo
 		rw::gl3::im2dOverrideShader = holo;
 		holo->use();
 		glUniform1f(holo->uniformLocations[u_holoTilt], tilt);
-		glUniform1f(holo->uniformLocations[u_holoCols], cols);
-		glUniform1f(holo->uniformLocations[u_holoRows], rows);
+		glUniform1i(holo->uniformLocations[u_holoCols], cols);
+		glUniform1i(holo->uniformLocations[u_holoRows], rows);
 		glUniform1f(holo->uniformLocations[u_holoPitch], pitch);
 		glUniform1f(holo->uniformLocations[u_holoCenter], center);
 		glUniform1f(holo->uniformLocations[u_holoViewPortionElement], viewPortionElement);
         glUniform1f(holo->uniformLocations[u_holoSubp], subp);
+        glUniform2fv(holo->uniformLocations[u_holoMaxUV], 1, holoMaxUV);
 #endif
 
 	RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, Vertex, 4, Index, 6);

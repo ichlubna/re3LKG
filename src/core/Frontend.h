@@ -706,6 +706,16 @@ public:
 	int32 m_nSelectedListRow;
 	bool m_bSkinsEnumerated;
 
+    int holoCols;
+    int holoRows;
+    float holoTilt;
+    float holoPitch;
+    float holoCenter;
+    float holoViewPortionElement;
+    float holoSubp;
+    float holoSpacingStep;
+    float holoFocusStep;
+
 #ifdef IMPROVED_VIDEOMODE
 	int32 m_nPrefsWidth;
 	int32 m_nPrefsHeight;
